@@ -1,100 +1,82 @@
-import React, { Component } from "react";
+import React, { useState } from "react";
 import ReactDOM from "react-dom";
 import Grid from "./grid";
-import Solver from "./solver.js";
+import Solver from "./solver";
+import Cell from "./cell";
 
 import "./index.css";
 
 type CellValueChangeListener = (row: number, col: number, value: number) => void;
+type SquareProps = { row: number, col: number, value: string | number, onCellValueChange: CellValueChangeListener }; 
 
-type SquareProps = { row: number, col: number, value: number, onCellValueChange: CellValueChangeListener }; 
-function Square({ row, col, value, onCellValueChange }: SquareProps) {
-  function fireOnChange(evt: any) {
-    const value: number = evt.target.value;
-    onCellValueChange(row, col, value);
-  }
-
-  return (
+const Square = ({ row, col, value, onCellValueChange }: SquareProps) => (
     <input
-      type="text"
-      value={value === 0 ? "" : value}
-      maxLength={1}
-      onChange={fireOnChange}
+    	type="text"
+      	value={value === 0 ? "" : value}
+      	maxLength={1}
+      	onChange={(evt: any) => {
+        	const value: number = evt.target.value;
+        	onCellValueChange(row, col, value);
+      	}}
     />
-  );
-}
+);
 
-type SudokuBoardProps = { grid: Grid, onCellValueChange: CellValueChangeListener };
-function SudukoBoard({ grid, onCellValueChange }: SudokuBoardProps) {
-
-    return (
-      <table className="sudoku">
+type SudokuBoardProps = { puzzleGrid: Grid, onCellValueChange: CellValueChangeListener };
+const SudukoBoard = ({ puzzleGrid, onCellValueChange }: SudokuBoardProps) => (
+    <table className="sudoku">
         <tbody>
-          {grid.rows.map((row, idx) => {
-            return (
-              <tr key={idx}>
-                {row.map(cell => (
-                  <td key={cell.col}>
-                    <Square
-                      value={cell.value}
-                      row={cell.row}
-                      col={cell.col}
-                      onCellValueChange={onCellValueChange}
-                    />
-                  </td>
-                ))}
-              </tr>
-            );
-          })}
+        { puzzleGrid.rows.map((row: Array<Cell>, idx) => (
+            <tr key={idx}>
+                { row.map(cell => (
+                    <td key={cell.col}>
+                        <Square
+                            value={cell.value}
+                            row={cell.row}
+                            col={cell.col}
+                            onCellValueChange={onCellValueChange}
+                        />
+                    </td>
+                )) }
+            </tr>
+        )) }
         </tbody>
-      </table>
-    );
-  }
+    </table>
+);
 
-type SudokuGameProps = { puzzle: string };
-type SudokuGameState = { grid: Grid };
-class SudokuGame extends Component<SudokuGameProps, SudokuGameState> {
-  constructor(props: SudokuGameProps) {
-    super(props);
-    const initialState = new Grid(props.puzzle);
-    this.state = { grid: initialState };
-  }
+type SudokuGameProps = { board: string };
 
-  solve() {
-    new Solver(this.state.grid).solve();
-    const solved = this.state.grid.toFlatString();
-    this.setState({ grid: new Grid(solved) });
-  }
+function SudokuGame({ board }: SudokuGameProps) {
+    const [puzzle, setPuzzle] = useState(new Grid(board));
 
-  onCellValueEdited(row: number, col: number, value:number) : void {
-    const {grid} = this.state;
-    grid.rows[row][col].value = value;
-    //this.setState({ grid: new Grid(grid.toFlatString() )});
-    this.setState(this.state);
-  }
+    function solve() {
+        new Solver(puzzle).solve();
+        setPuzzle(new Grid(puzzle.toFlatString()));
+    }
 
-  clearAll() {
-    this.setState({ grid: new Grid() });
-  }
+    function onCellValueEdited(row: number, col: number, value: number) {
+        const newGrid = new Grid(puzzle.toFlatString());
+        newGrid.rows[row][col].value = value;
+        setPuzzle(newGrid);
+    }
 
-  render() {
     return (
-      <div className="game">
-        <h1>Sudoku Solver</h1>
-        <SudukoBoard
-           grid={this.state.grid}
-           onCellValueChange={this.onCellValueEdited.bind(this)}
-        />
-        <div className="buttons">
-          <button onClick={() => this.solve()}>Solve It!</button>
-          <button onClick={() => this.clearAll()}>Clear All</button>
+        <div className="game">
+            <h1>Sudoku Solver</h1>
+            <SudukoBoard
+                puzzleGrid={puzzle}
+                onCellValueChange={onCellValueEdited}
+            />
+
+            <div className="buttons">
+                <button onClick={solve}>Solve It!</button>
+                <button onClick={() => setPuzzle(new Grid())}>Clear All</button>
+            </div>
         </div>
-      </div>
     );
-  }
 }
+
 
 ReactDOM.render(
-  <SudokuGame puzzle="4.....8.5.3..........7......2.....6.....8.4......1.......6.3.7.5..2.....1.4......" />,
+  <SudokuGame board="4.....8.5.3..........7......2.....6.....8.4......1.......6.3.7.5..2.....1.4......" />,
   document.getElementById("app")
 );

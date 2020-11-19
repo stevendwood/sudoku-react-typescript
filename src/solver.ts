@@ -1,15 +1,22 @@
+import Cell from "./cell";
+import Grid from "./grid";
+
 const DIGITS = [1, 2, 3, 4, 5, 6, 7, 8, 9];
 
 // These are a couple of useful map functions, pulling them up here
 // speeds things up.
-const valueOfCell = cell => cell.value,
-    possibleValuesOfCell = cell => cell.possibleValues;
+const valueOfCell = (cell: Cell) => cell.value,
+    possibleValuesOfCell = (cell:Cell) => cell.possibleValues;
 
 // filter unsolved cells out of a list cells.
-const isUnsolved = cell => cell.value === 0;
+const isUnsolved = (cell: Cell) => cell.value === 0;
 
 export default class Solver {
-    constructor(grid) {
+    grid: Grid;
+    guesses: number;
+    private _solvedCells: Array<Cell>;
+
+    constructor(grid: Grid) {
         this.grid = grid;
         this.guesses = 0;
         this._solvedCells = [];
@@ -33,7 +40,7 @@ export default class Solver {
         // pick the cell with least possible values (more chance of guessing correctly)
         const cell = this.grid.unsolved().sort((x, y) => {
             const xVal = x.possibleValues.length * 100 + (x.row + x.col),
-                yVal = y.possibleValues.length * 100 + (y.row + y.col);
+                  yVal = y.possibleValues.length * 100 + (y.row + y.col);
 
             return xVal - yVal;
         })[0];
@@ -54,7 +61,7 @@ export default class Solver {
                 // here's the back tracking part, we've ended up in a position where we
                 // can't progress, so before we try another value, undo all the values
                 // we set since the last guess.
-                let resetPossibilities = [];
+                let resetPossibilities: Array<Cell> = [];
                 this._solvedCells
                     .splice(numSolved, this._solvedCells.length - numSolved)
                     .forEach(cell => {
@@ -82,7 +89,7 @@ export default class Solver {
         }
     }
 
-    _initPossibleValues(cells) {
+    _initPossibleValues(cells?:Set<Cell>) {
         /*
             Initialise the possible values for the provided list of cells or
             all the unsolved cells in the grid if no list was provided.
@@ -108,7 +115,7 @@ export default class Solver {
 
             [1, 2, 3, 4, 5, 6, 7, 8, 9] - [5, 3, 2, 9, 7] = [8, 1, 4, 6]
         */
-        (cells || this.grid.unsolved()).forEach(cell => {
+        (cells || this.grid.unsolved()).forEach((cell: Cell) => {
             let peerValues = this.grid.peers(cell).map(valueOfCell),
                 possibleValues = DIGITS.filter(
                     d => !peerValues.includes(d)
@@ -117,7 +124,7 @@ export default class Solver {
         });
     }
 
-    _removeValueFromPeers(cell) {
+    _removeValueFromPeers(cell: Cell) {
         // Summary:
         //  Remove the value of cell from the possible values of
         //  it's peers.
@@ -125,7 +132,7 @@ export default class Solver {
             .peers(cell)
             .filter(isUnsolved)
             .forEach(p => {
-                const idx = p.possibleValues.indexOf(cell.value);
+                const idx = p.possibleValues.indexOf(cell.value as number);
                 if (idx !== -1) {
                     p.possibleValues.splice(idx, 1);
                 }
@@ -141,7 +148,7 @@ export default class Solver {
             });
     }
 
-    _setValueForCell(cell, value) {
+    _setValueForCell(cell:Cell, value: number) {
         const peers = this.grid.peers(cell);
 
         if (peers.some(x => x.value === value)) {
@@ -156,7 +163,7 @@ export default class Solver {
         this._findUniqueValuesInUnits(cell);
     }
 
-    _findCellsWithOnePossibleValue(cells) {
+    _findCellsWithOnePossibleValue(cells?: Array<Cell>) {
         cells = cells || this.grid.unsolved();
         cells.forEach(cell => {
             if (cell.value === 0 && cell.possibleValues.length === 1) {
@@ -165,7 +172,7 @@ export default class Solver {
         });
     }
 
-    _findUniqueValuesInUnits(cell) {
+    _findUniqueValuesInUnits(cell?: Cell) {
         if (cell) {
             [
                 this.grid.sameSubGridAs(cell).flat(),
@@ -183,7 +190,7 @@ export default class Solver {
         }
     }
 
-    _findUniquePossibiltyInUnit(unit) {
+    _findUniquePossibiltyInUnit(unit: Array<Cell>) {
         let unsolved = unit.filter(isUnsolved);
         unsolved.forEach(unsolvedCell => {
             let unique,
